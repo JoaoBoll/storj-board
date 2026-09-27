@@ -47,6 +47,8 @@ O `backend` roda um job (Quartz) a cada 5 segundos que consulta a API de dashboa
    docker compose up -d --build
    ```
 
+   O Compose limita o uso em runtime a 4 GB no total: 3 GB para o backend, 768 MB para o PostgreSQL e 256 MB para o frontend. O heap da JVM fica limitado a 2 GB, com memória adicional reservada para outras estruturas do Java. Se o backend ultrapassar seu limite, o Docker pode encerrá-lo por falta de memória.
+
 4. Acesse:
    - **Painel (frontend)**: http://localhost:29000
    - **API (backend)**: http://localhost:8081

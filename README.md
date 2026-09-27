@@ -47,6 +47,8 @@ The `backend` runs a Quartz job every 5 seconds that queries each configured nod
    docker compose up -d --build
    ```
 
+   Compose caps runtime memory at 4 GB total: 3 GB for the backend, 768 MB for PostgreSQL, and 256 MB for the frontend. The JVM heap is capped at 2 GB, leaving room for other Java memory. Docker may terminate the backend if it exceeds its container limit.
+
 4. Access:
    - **Dashboard (frontend)**: http://localhost:29000
    - **API (backend)**: http://localhost:8081

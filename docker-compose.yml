@@ -2,6 +2,7 @@
 services:
   database:
     image: postgres:16-alpine
+    mem_limit: 768m
     environment:
       POSTGRES_DB: ${database_name}
       POSTGRES_USER: ${database_user}
@@ -20,6 +21,7 @@ services:
     restart: unless-stopped
 
   backend:
+    mem_limit: 3g
     depends_on:
       database:
         condition: service_healthy
@@ -34,11 +36,13 @@ services:
       - database_password=${database_password}
       - urls=${urls}
       - log_level=${log_level}
+      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx2g
     networks:
       - app-network
     restart: unless-stopped
 
   frontend:
+    mem_limit: 256m
     build:
       context: ./frontend
       dockerfile: Dockerfile
