@@ -254,7 +254,7 @@ export class AppComponent implements OnDestroy {
     this.updateChart(chart);
   }
 
-  private overviewFor(interval: Interval, range: Range): OverviewResponse {
+  private overviewFor(chart: ChartKey, interval: Interval, range: Range): OverviewResponse {
     return this.overviewData.get(this.overviewKey(chart, interval, range)) ?? { interval, points: range, data: [] };
   }
 
@@ -267,7 +267,7 @@ export class AppComponent implements OnDestroy {
   }
 
   private updateStorageChart(): void {
-    const data = this.overviewFor(this.storageInterval, this.storageRange);
+    const data = this.overviewFor('storage', this.storageInterval, this.storageRange);
     const rawValues = data.data.map(point => point.storageUsed ?? 0);
     const unit = this.resolveUnit(this.storageUnit, this.representativeBytes(rawValues));
     const values = rawValues.map(bytes => this.toUnit(bytes, unit));
@@ -288,7 +288,7 @@ export class AppComponent implements OnDestroy {
   }
 
   private updateTrashChart(): void {
-    const data = this.overviewFor(this.trashInterval, this.trashRange);
+    const data = this.overviewFor('trash', this.trashInterval, this.trashRange);
     const rawValues = data.data.map(point => point.trashUsed ?? 0);
     const unit = this.resolveUnit(this.trashUnit, this.representativeBytes(rawValues));
     const values = rawValues.map(bytes => this.toUnit(bytes, unit));
@@ -320,7 +320,7 @@ export class AppComponent implements OnDestroy {
   }
 
   private updateBandwidthChart(): void {
-    const data = this.overviewFor(this.bandwidthInterval, this.bandwidthRange);
+    const data = this.overviewFor('bandwidth', this.bandwidthInterval, this.bandwidthRange);
     const rawIngress = data.data.map(point => point.ingressTotal ?? 0);
     const rawEgress = data.data.map(point => point.egressTotal ?? 0);
     const unit = this.resolveUnit(this.bandwidthUnit, Math.max(this.representativeBytes(rawIngress), this.representativeBytes(rawEgress)));
@@ -425,7 +425,7 @@ export class AppComponent implements OnDestroy {
   }
 
   private updatePayoutChart(): void {
-    const data = this.overviewFor(this.payoutInterval, this.payoutRange);
+    const data = this.overviewFor('payout', this.payoutInterval, this.payoutRange);
     const unit = 'USD';
 
     // The chart plots currentMonthPayout - the actual payout accrued so far this month
@@ -450,7 +450,7 @@ export class AppComponent implements OnDestroy {
   }
 
   private updateUptimeChart(): void {
-    const data = this.overviewFor(this.uptimeInterval, this.uptimeRange);
+    const data = this.overviewFor('uptime', this.uptimeInterval, this.uptimeRange);
     const values = data.data.map(point => point.uptimePercent ?? 100);
     // Use all points for average calculation, then display only the last N
     const displayValues = values.slice(-this.uptimeRange);
