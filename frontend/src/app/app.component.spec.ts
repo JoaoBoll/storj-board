@@ -49,4 +49,29 @@ describe('AppComponent', () => {
     expect(http.get.calls.mostRecent().args[0]).toContain('metric=trash');
     expect(http.get.calls.mostRecent().args[0]).toContain('points=11');
   });
+
+  it('formats bandwidth tooltip totals and changes using each value’s own unit', () => {
+    const gb = 1024 ** 3;
+    const mb = 1024 ** 2;
+    const kb = 1024;
+    http.get.withArgs('/api/job/overview?metric=bandwidth&interval=5m&points=11').and.returnValue(of({
+      interval: '5m', points: 11, data: [
+        { label: '2026-09-27T10:00:00Z', ingressTotal: gb, egressTotal: 512, totalBandwidthUsed: 0 },
+        { label: '2026-09-27T10:05:00Z', ingressTotal: gb + 512 * kb, egressTotal: 768, totalBandwidthUsed: 0 },
+        { label: '2026-09-27T10:10:00Z', ingressTotal: gb + 512 * kb + 512, egressTotal: 768 + mb, totalBandwidthUsed: 0 }
+      ]
+    }) as never);
+
+    component.selectChartRange('bandwidth', '10');
+    const tooltip = component.bandwidthChart.tooltip.custom as (options: { dataPointIndex: number }) => string;
+    const firstChange = tooltip({ dataPointIndex: 1 });
+    expect(firstChange).toContain('1 GB');
+    expect(firstChange).toContain('+512 KB');
+    expect(firstChange).toContain('768 B');
+    expect(firstChange).toContain('+256 B');
+
+    const secondChange = tooltip({ dataPointIndex: 2 });
+    expect(secondChange).toContain('+512 B');
+    expect(secondChange).toContain('+1 MB');
+  });
 });

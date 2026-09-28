@@ -327,17 +327,17 @@ export class AppComponent implements OnDestroy {
     const ingressValues = rawIngress.map(bytes => this.toUnit(bytes, unit));
     const egressValues = rawEgress.map(bytes => this.toUnit(bytes, unit));
     // Use all points for delta calculation
-    let ingressDeltas = this.toBandwidthDeltaSeries(ingressValues);
-    let egressDeltas = this.toBandwidthDeltaSeries(egressValues);
+    let ingressDeltaBytes = this.toBandwidthDeltaSeries(rawIngress);
+    let egressDeltaBytes = this.toBandwidthDeltaSeries(rawEgress);
     const subMinute = this.isSubMinuteInterval(this.bandwidthInterval);
     if (subMinute) {
       const rawTotal = data.data.map(point => point.totalBandwidthUsed ?? 0);
-      const totalValues = rawTotal.map(bytes => this.toUnit(bytes, unit));
-      const totalDeltas = this.toBandwidthDeltaSeries(totalValues);
-      ingressDeltas = totalDeltas.map((delta, index) => delta * this.ingressShare(rawIngress[index], rawEgress[index]));
-      egressDeltas = totalDeltas.map((delta, index) => delta * (1 - this.ingressShare(rawIngress[index], rawEgress[index])));
+      const totalDeltas = this.toBandwidthDeltaSeries(rawTotal);
+      ingressDeltaBytes = totalDeltas.map((delta, index) => delta * this.ingressShare(rawIngress[index], rawEgress[index]));
+      egressDeltaBytes = totalDeltas.map((delta, index) => delta * (1 - this.ingressShare(rawIngress[index], rawEgress[index])));
     }
-    egressDeltas = egressDeltas.map(v => -v); // Invert egress
+    const ingressDeltas = ingressDeltaBytes.map(bytes => this.toUnit(bytes, unit));
+    const egressDeltas = egressDeltaBytes.map(bytes => -this.toUnit(bytes, unit)); // Invert egress
     // Display only the last N points
     const displayIngressDeltas = ingressDeltas.slice(-this.bandwidthRange);
     const displayEgressDeltas = egressDeltas.slice(-this.bandwidthRange);
@@ -351,9 +351,9 @@ export class AppComponent implements OnDestroy {
         { name: 'Egress', data: displayEgressDeltas }
       ],
       xaxis: { ...this.bandwidthChart.xaxis, categories: displayLabels },
-      tooltip: this.buildSignedTooltip(unit, [
-        { name: 'Ingress', values: displayIngressDeltas, totals: displayIngressValues },
-        { name: 'Egress', values: displayEgressDeltas.map(v => -v), totals: displayEgressValues }
+      tooltip: this.buildSignedTooltip([
+        { name: 'Ingress', values: ingressDeltaBytes.slice(-this.bandwidthRange), totals: rawIngress.slice(-this.bandwidthRange) },
+        { name: 'Egress', values: egressDeltaBytes.slice(-this.bandwidthRange), totals: rawEgress.slice(-this.bandwidthRange) }
       ])
     };
     // This total only spans whatever window/interval the chart happens to be showing right
@@ -487,7 +487,7 @@ export class AppComponent implements OnDestroy {
     };
   }
 
-  private buildSignedTooltip(unit: string, series: { name: string; values: number[]; totals?: number[] }[]): ChartOptions['tooltip'] {
+  private buildSignedTooltip(series: { name: string; values: number[]; totals: number[] }[]): ChartOptions['tooltip'] {
     return {
       theme: 'dark',
       custom: ({ dataPointIndex }: { dataPointIndex: number }) => {
@@ -495,10 +495,10 @@ export class AppComponent implements OnDestroy {
           const delta = values[dataPointIndex] ?? 0;
           const sign = delta >= 0 ? '+' : '';
           const color = delta >= 0 ? '#c7f36b' : '#f4bb61';
-          const totalLine = totals ? `<div>${this.formatNumber(totals[dataPointIndex] ?? 0)} ${unit}</div>` : '';
+          const totalLine = `<div>${this.formatBytes(totals[dataPointIndex] ?? 0)}</div>`;
           return `<div style="margin-top:6px;"><strong>${name}:</strong>`
             + totalLine
-            + `<span style="color:${color};">${sign}${this.formatNumber(delta)} ${unit}</span></div>`;
+            + `<span style="color:${color};">${sign}${this.formatBytes(delta)}</span></div>`;
         }).join('');
         return `<div style="padding:8px 10px;font:11px 'DM Mono',monospace;color:#e7ecee;background:#141b1f;border:1px solid #26323a;border-radius:6px;">${rows}</div>`;
       }
@@ -519,6 +519,13 @@ export class AppComponent implements OnDestroy {
 
   private formatNumber(value: number): string {
     return value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+
+  private formatBytes(bytes: number): string {
+    const abs = Math.abs(bytes);
+    const unit = abs >= 1024 ** 3 ? 'GB' : abs >= 1024 ** 2 ? 'MB' : abs >= 1024 ? 'KB' : 'B';
+    const divisor = { B: 1, KB: 1024, MB: 1024 ** 2, GB: 1024 ** 3 }[unit];
+    return `${this.formatNumber(bytes / divisor)} ${unit}`;
   }
 
   public withData(chart: ChartOptions, name: string, data: number[], labels: string[]): ChartOptions {
