@@ -40,13 +40,13 @@ interface NodeCard {
 interface OverviewPoint {
   label: string;
   storageUsed: number | null;
-  storagePercentOfFirst: number;
+  storagePercentOfFirst: number | null;
   trashUsed: number | null;
-  trashPercentOfFirst: number;
+  trashPercentOfFirst: number | null;
   ingressTotal: number | null;
   egressTotal: number | null;
   totalBandwidthUsed: number | null;
-  uptimePercent: number;
+  uptimePercent: number | null;
   estimatedPayout: number | null;
   currentMonthPayout: number | null;
 }
@@ -180,21 +180,21 @@ export class AppComponent implements OnDestroy {
     this.chartKeys.forEach(chart => this.fetchOverview(chart, force));
   }
 
-  private overviewKey(interval: Interval, range: Range): string {
-    return `${interval}:${range}`;
+  private overviewKey(chart: ChartKey, interval: Interval, range: Range): string {
+    return `${chart}:${interval}:${range}`;
   }
 
   private fetchOverview(chart: ChartKey, force = false): void {
     const interval = this.intervalFor(chart);
     const range = this.rangeFor(chart);
-    const key = this.overviewKey(interval, range);
+    const key = this.overviewKey(chart, interval, range);
     if (this.overviewData.has(key) && !force) {
       this.updateChart(chart);
       return;
     }
     // Fetch one extra point for accurate delta calculation on first visible point
     const pointsToFetch = range + 1;
-    let url = `/api/job/overview?interval=${interval}&points=${pointsToFetch}`;
+    let url = `/api/job/overview?metric=${chart}&interval=${interval}&points=${pointsToFetch}`;
 
     // Add date filter parameters if provided
     if (this.dateFilterStart) {
@@ -220,11 +220,14 @@ export class AppComponent implements OnDestroy {
     this.scheduleUptimeAutoRefresh();
   }
 
-  public selectChartRange(chart: ChartKey, range: Range): void {
-    if (chart === 'storage') this.storageRange = range;
-    if (chart === 'trash') this.trashRange = range;
-    if (chart === 'bandwidth') this.bandwidthRange = range;
-    if (chart === 'uptime') this.uptimeRange = range;
+  public selectChartRange(chart: ChartKey, range: Range | string): void {
+    const selectedRange = Number(range) as Range;
+    if (!RANGE_OPTIONS.includes(selectedRange)) return;
+    if (chart === 'storage') this.storageRange = selectedRange;
+    if (chart === 'trash') this.trashRange = selectedRange;
+    if (chart === 'bandwidth') this.bandwidthRange = selectedRange;
+    if (chart === 'payout') this.payoutRange = selectedRange;
+    if (chart === 'uptime') this.uptimeRange = selectedRange;
     this.fetchOverview(chart);
   }
 
@@ -252,7 +255,7 @@ export class AppComponent implements OnDestroy {
   }
 
   private overviewFor(interval: Interval, range: Range): OverviewResponse {
-    return this.overviewData.get(this.overviewKey(interval, range)) ?? { interval, points: range, data: [] };
+    return this.overviewData.get(this.overviewKey(chart, interval, range)) ?? { interval, points: range, data: [] };
   }
 
   private updateChart(chart: ChartKey): void {
@@ -366,7 +369,7 @@ export class AppComponent implements OnDestroy {
   // it fetches its own fixed 49-hour window (49 hourly buckets = two adjacent 24h periods plus
   // one extra point as the delta baseline) instead of reusing bandwidthInterval/bandwidthRange.
   private loadBandwidth24hSummary(): void {
-    this.http.get<OverviewResponse>('/api/job/overview?interval=1h&points=49').subscribe({
+    this.http.get<OverviewResponse>('/api/job/overview?metric=bandwidth&interval=1h&points=49').subscribe({
       next: (overview) => {
         const points = overview.data;
         const end = points.length - 1;
@@ -448,7 +451,7 @@ export class AppComponent implements OnDestroy {
 
   private updateUptimeChart(): void {
     const data = this.overviewFor(this.uptimeInterval, this.uptimeRange);
-    const values = data.data.map(point => point.uptimePercent);
+    const values = data.data.map(point => point.uptimePercent ?? 100);
     // Use all points for average calculation, then display only the last N
     const displayValues = values.slice(-this.uptimeRange);
     const displayLabels = data.data.slice(-this.uptimeRange).map(point => this.formatLabel(point.label, this.uptimeInterval));

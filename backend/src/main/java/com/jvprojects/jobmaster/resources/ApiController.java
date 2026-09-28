@@ -54,8 +54,13 @@ public class ApiController {
     @GetMapping("/overview")
     public OverviewResponse overview(@org.springframework.web.bind.annotation.RequestParam(defaultValue = "5m") String interval,
                                       @org.springframework.web.bind.annotation.RequestParam(defaultValue = "30") int points,
+                                      @org.springframework.web.bind.annotation.RequestParam(defaultValue = "all") String metric,
                                       @org.springframework.web.bind.annotation.RequestParam(required = false) String startDate,
                                       @org.springframework.web.bind.annotation.RequestParam(required = false) String endDate) {
+        if (!java.util.Set.of("all", "storage", "trash", "bandwidth", "uptime", "payout").contains(metric)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Unsupported overview metric");
+        }
         Duration step = intervalDuration(interval);
         OffsetDateTime end = alignToBoundary(OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS), interval, step);
         OffsetDateTime start = end.minus(step.multipliedBy(points));
@@ -151,7 +156,21 @@ public class ApiController {
             resultPoints = filterByDateRange(resultPoints, startDate, endDate);
         }
 
-        return new OverviewResponse(interval, points, resultPoints);
+        List<OverviewResponse.Point> metricPoints = resultPoints.stream()
+                .map(point -> projectPoint(point, metric))
+                .toList();
+        return new OverviewResponse(interval, points, metricPoints);
+    }
+
+    private OverviewResponse.Point projectPoint(OverviewResponse.Point point, String metric) {
+        return switch (metric) {
+            case "storage" -> new OverviewResponse.Point(point.label(), point.storageUsed(), point.storagePercentOfFirst(), null, null, null, null, null, null, null, null);
+            case "trash" -> new OverviewResponse.Point(point.label(), null, null, point.trashUsed(), point.trashPercentOfFirst(), null, null, null, null, null, null);
+            case "bandwidth" -> new OverviewResponse.Point(point.label(), null, null, null, null, point.ingressTotal(), point.egressTotal(), point.totalBandwidthUsed(), null, null, null);
+            case "uptime" -> new OverviewResponse.Point(point.label(), null, null, null, null, null, null, null, point.uptimePercent(), null, null);
+            case "payout" -> new OverviewResponse.Point(point.label(), null, null, null, null, null, null, null, null, point.estimatedPayout(), point.currentMonthPayout());
+            default -> point;
+        };
     }
 
     private List<OverviewResponse.Point> filterByDateRange(List<OverviewResponse.Point> points, String startDate, String endDate) {

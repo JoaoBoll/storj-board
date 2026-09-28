@@ -7,6 +7,7 @@ public record OverviewResponse(
     int points,
     List<Point> data
 ) {
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
     public record Point(
         String label,
         Long storageUsed,
