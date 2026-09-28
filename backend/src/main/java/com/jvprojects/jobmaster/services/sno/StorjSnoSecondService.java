@@ -34,13 +34,15 @@ public class StorjSnoSecondService {
     private final StorjNodeRepository storjNodeRepository;
     private final Configurations configurations;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final List<String> urls;
 
-    public StorjSnoSecondService(StorjSnoSecondRepository storjSnoSecondRepository, StorjNodeRepository storjNodeRepository, Configurations configurations) {
+    public StorjSnoSecondService(StorjSnoSecondRepository storjSnoSecondRepository, StorjNodeRepository storjNodeRepository,
+                                Configurations configurations, RestTemplate restTemplate) {
         this.storjSnoSecondRepository = storjSnoSecondRepository;
         this.storjNodeRepository = storjNodeRepository;
         this.configurations = configurations;
+        this.restTemplate = restTemplate;
         this.urls = configurations.getUrls();
     }
 

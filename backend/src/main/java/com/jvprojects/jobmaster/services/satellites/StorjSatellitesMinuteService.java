@@ -10,7 +10,6 @@ import com.jvprojects.jobmaster.services.sno.StorjSnoSecondService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -25,7 +24,6 @@ public class StorjSatellitesMinuteService {
 
     private final Configurations configurations;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final RestTemplate restTemplate = new RestTemplate();
     private final List<String> urls;
 
     private StorjNodeRepository storjNodeRepository;

@@ -25,17 +25,19 @@ public class StorjSatellitesService {
 
     private final Configurations configurations;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final List<String> urls;
 
     private StorjNodeRepository storjNodeRepository;
     private StorjSatellitesRepository storjSatellitesRepository;
 
-    public StorjSatellitesService(Configurations configurations, StorjNodeRepository storjNodeRepository, StorjSatellitesRepository storjSatellitesRepository) {
+    public StorjSatellitesService(Configurations configurations, StorjNodeRepository storjNodeRepository,
+                                 StorjSatellitesRepository storjSatellitesRepository, RestTemplate restTemplate) {
         this.configurations = configurations;
         this.urls = configurations.getUrls();
         this.storjNodeRepository = storjNodeRepository;
         this.storjSatellitesRepository = storjSatellitesRepository;
+        this.restTemplate = restTemplate;
     }
 
     public List<StorjSatellitesDto> fetchStorjSatellites() {

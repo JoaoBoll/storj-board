@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -58,14 +60,16 @@ public class ApiController {
                                       @org.springframework.web.bind.annotation.RequestParam(required = false) String startDate,
                                       @org.springframework.web.bind.annotation.RequestParam(required = false) String endDate) {
         if (!java.util.Set.of("all", "storage", "trash", "bandwidth", "uptime", "payout").contains(metric)) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST, "Unsupported overview metric");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported overview metric");
+        }
+        if (points < 1 || points > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "points must be between 1 and 100");
         }
         Duration step = intervalDuration(interval);
         OffsetDateTime end = alignToBoundary(OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS), interval, step);
         OffsetDateTime start = end.minus(step.multipliedBy(points));
-        // Fetch only records within the time range, not all records in DB
-        List<StorjSnoSecond> snoRecords = storjSnoSecondRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(start.minusMinutes(5), end.plusMinutes(5));
+        List<StorjSnoSecond> snoRecords = storjSnoSecondRepository.findLatestPerNodeAndBucket(
+                start, end, step.getSeconds());
         List<OverviewResponse.Point> resultPoints = new ArrayList<>();
         Long firstStorage = null;
         Long firstTrash = null;

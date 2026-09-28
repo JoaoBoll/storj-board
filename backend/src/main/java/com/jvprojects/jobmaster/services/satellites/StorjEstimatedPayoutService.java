@@ -24,18 +24,19 @@ public class StorjEstimatedPayoutService {
 
     private final Configurations configurations;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final List<String> urls;
 
     private final StorjNodeRepository storjNodeRepository;
     private final StorjEstimatedPayoutRepository storjEstimatedPayoutRepository;
 
     public StorjEstimatedPayoutService(Configurations configurations, StorjNodeRepository storjNodeRepository,
-                                        StorjEstimatedPayoutRepository storjEstimatedPayoutRepository) {
+                                        StorjEstimatedPayoutRepository storjEstimatedPayoutRepository, RestTemplate restTemplate) {
         this.configurations = configurations;
         this.urls = configurations.getUrls();
         this.storjNodeRepository = storjNodeRepository;
         this.storjEstimatedPayoutRepository = storjEstimatedPayoutRepository;
+        this.restTemplate = restTemplate;
     }
 
     public List<EstimatedPayoutDTO> fetchEstimatedPayouts() {
